@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="FitFuel">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<title>FitFuel</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#2563eb;--good:#16a34a;--danger:#dc2626}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;background:var(--bg);color:var(--ink);padding-bottom:92px}
+header{padding:calc(env(safe-area-inset-top) + 18px) 18px 14px;background:#fff;position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line)}
+h1{margin:0;font-size:27px}.sub{color:var(--muted);font-size:14px;margin-top:3px}
+main{max-width:720px;margin:auto;padding:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 2px 10px #00000008}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.stat{padding:14px;background:#f8fafc;border-radius:14px}.stat b{font-size:22px}.muted{color:var(--muted)}button{border:0;border-radius:12px;padding:11px 14px;font-weight:700;background:var(--accent);color:#fff;font-size:15px}button.secondary{background:#eef2ff;color:#1e3a8a}button.ghost{background:#f3f4f6;color:var(--ink)}button.danger{background:#fee2e2;color:#991b1b}
+input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:11px;font-size:16px;background:#fff}.form{display:grid;gap:10px}
+.exercise{border:1px solid var(--line);border-radius:14px;padding:13px;margin-top:10px}.sets{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.set{background:#f3f4f6;color:var(--ink);min-width:54px}.set.done{background:#dcfce7;color:#166534}.meal{padding:12px 0;border-bottom:1px solid var(--line)}.meal:last-child{border-bottom:0}
+.nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:8px max(8px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));display:flex;justify-content:space-around;z-index:10}.nav button{background:transparent;color:var(--muted);padding:7px 8px;font-size:12px}.nav button.active{color:var(--accent)}
+.progress{height:9px;background:#e5e7eb;border-radius:9px;overflow:hidden}.progress>i{display:block;height:100%;background:var(--accent)}
+.small{font-size:13px}.pill{display:inline-block;padding:5px 9px;background:#eef2ff;color:#3730a3;border-radius:999px;font-size:12px;font-weight:700}
+@media(min-width:600px){.grid{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<header><div class="row"><div><h1>FitFuel</h1><div class="sub">Strength • Nutrition • Progress</div></div><span class="pill" id="weekPill"></span></div></header>
+<main id="app"></main>
+<nav class="nav">
+<button data-tab="today">🏠<br>Today</button><button data-tab="workout">🏋️<br>Workout</button><button data-tab="meals">🍽️<br>Meals</button><button data-tab="progress">📈<br>Progress</button><button data-tab="more">⚙️<br>More</button>
+</nav>
+<script>
+const KEY="fitfuel_v2";
+const plans=[
+{title:"Week 1 • Foundation",days:[
+{name:"Monday",focus:"Strength A",ex:[["Goblet Squat",3,10],["DB Bench Press",3,10],["Supported 1-Arm DB Row",3,10],["DB Glute Bridge",3,12],["Dead Bug",3,8],["Side Plank",3,25]]},
+{name:"Wednesday",focus:"Strength B",ex:[["DB Box Squat",3,10],["DB Overhead Press",3,10],["Chest-Supported DB Row",3,10],["DB Hip Thrust",3,12],["Bird Dog",3,8],["Suitcase Carry",3,30]]},
+{name:"Friday",focus:"Strength C",ex:[["Supported DB Split Squat",3,8],["Incline Push-Up",3,10],["Supported 1-Arm DB Row",3,10],["Elevated KB Deadlift",3,10],["KB Swing / Hip Hinge",3,12],["Plank",3,25]]}]},
+{title:"Week 2 • Volume",days:[
+{name:"Monday",focus:"Lower + Push",ex:[["DB Romanian Deadlift",3,10],["DB Floor Press",3,10],["Goblet Squat",3,12],["DB Glute Bridge",3,15],["Dead Bug",3,10]]},
+{name:"Wednesday",focus:"Upper + Core",ex:[["Chest-Supported DB Row",4,10],["Seated DB Press",3,10],["Incline Push-Up",3,12],["Suitcase Carry",3,35],["Side Plank",3,30]]},
+{name:"Friday",focus:"Full Body",ex:[["DB Step-Up",3,8],["DB Bench Press",3,10],["1-Arm DB Row",3,10],["KB Deadlift",3,12],["Bird Dog",3,10],["Plank",3,30]]}]},
+{title:"Week 3 • Strength",days:[
+{name:"Monday",focus:"Strength A",ex:[["Goblet Squat",4,8],["DB Bench Press",4,8],["Supported 1-Arm Row",4,8],["DB Hip Thrust",3,10],["Dead Bug",3,10]]},
+{name:"Wednesday",focus:"Strength B",ex:[["DB Box Squat",4,8],["DB Overhead Press",3,8],["Chest-Supported Row",4,8],["DB Glute Bridge",3,12],["Suitcase Carry",3,40]]},
+{name:"Friday",focus:"Strength C",ex:[["Supported Split Squat",3,8],["Incline Push-Up",3,12],["1-Arm Row",4,8],["Elevated KB Deadlift",4,8],["Side Plank",3,30]]}]},
+{title:"Week 4 • Deload + Conditioning",days:[
+{name:"Monday",focus:"Easy Full Body",ex:[["Goblet Squat",2,10],["DB Bench Press",2,10],["Supported Row",2,10],["Glute Bridge",2,12],["Dead Bug",2,8]]},
+{name:"Wednesday",focus:"Core + Mobility",ex:[["DB Box Squat",2,10],["Incline Push-Up",2,10],["Chest-Supported Row",2,10],["Bird Dog",2,8],["Side Plank",2,20]]},
+{name:"Friday",focus:"Full Body Easy",ex:[["DB Step-Up",2,8],["DB Floor Press",2,10],["1-Arm Row",2,10],["KB Deadlift",2,10],["Plank",2,20]]}]}
+];
+const meals=[
+["Breakfast","Greek yogurt protein bowl","Greek yogurt + protein powder + berries + a little granola","430 cal • 45g protein"],
+["Lunch","Chicken fajita bowl","Chicken breast + rice + peppers/onions + black beans + salsa","570 cal • 55g protein"],
+["Snack","Protein shake","Protein powder + milk/almond milk + banana","300 cal • 35g protein"],
+["Dinner","Lean beef taco bowl","93% lean beef + potatoes/rice + lettuce + pico + light cheese","620 cal • 55g protein"],
+["Evening","Cottage cheese bowl","Cottage cheese + berries","220 cal • 28g protein"]
+];
+let state=JSON.parse(localStorage.getItem(KEY)||'{"tab":"today","week":0,"weight":"","waist":"","done":{},"notes":"","schedule":"3","mealChecks":{}}');
+function save(){localStorage.setItem(KEY,JSON.stringify(state));}
+function dayIndex(){let d=new Date().getDay();return d===1?0:d===3?1:d===5?2:-1}
+function currentPlan(){return plans[state.week%plans.length]}
+function todayWorkout(){let i=dayIndex();return currentPlan().days[i>=0?i:0]}
+function render(){
+ document.getElementById("weekPill").textContent=currentPlan().title;
+ document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===state.tab));
+ let c=document.getElementById("app");
+ if(state.tab==="today") renderToday(c); else if(state.tab==="workout") renderWorkout(c); else if(state.tab==="meals") renderMeals(c); else if(state.tab==="progress") renderProgress(c); else renderMore(c);
+}
+function renderToday(c){
+ let w=todayWorkout(), completed=countDone(w), total=w.ex.reduce((a,x)=>a+x[1],0);
+ c.innerHTML=`<div class="card"><div class="row"><div><div class="muted small">TODAY</div><h2>${w.name} • ${w.focus}</h2></div><span class="pill">${completed}/${total} sets</span></div><div class="progress"><i style="width:${total?completed/total*100:0}%"></i></div><p class="muted">Back-friendly strength with extra core and glute work. Use a comfortable load and stop if pain is sharp or worsening.</p><button onclick="state.tab='workout';save();render()">Start Workout</button></div>
+ <div class="grid"><div class="stat"><span class="muted">Calories</span><br><b>2,150</b><br><span class="small">target</span></div><div class="stat"><span class="muted">Protein</span><br><b>200g</b><br><span class="small">target</span></div><div class="stat"><span class="muted">Goal</span><br><b>180–185</b><br><span class="small">lb</span></div><div class="stat"><span class="muted">Week</span><br><b>${state.week+1}</b><br><span class="small">of rotation</span></div></div>
+ <div class="card"><h3>Quick check-in</h3><div class="form"><input id="quickWeight" inputmode="decimal" placeholder="Today's weight (lb)" value="${state.weight}"><button class="secondary" onclick="state.weight=document.getElementById('quickWeight').value;save();render()">Save Weight</button></div></div>`;
+}
+function countDone(w){let n=0;w.ex.forEach((x,ei)=>{for(let s=1;s<=x[1];s++)if(state.done[state.week+"-"+w.name+"-"+ei+"-"+s])n++});return n}
+function renderWorkout(c){
+ let w=todayWorkout();let h=`<div class="card"><div class="muted small">${currentPlan().title}</div><h2>${w.name} • ${w.focus}</h2><p class="muted">Tap each set when complete. Increase weight only when form is solid.</p>`;
+ w.ex.forEach((x,ei)=>{h+=`<div class="exercise"><div class="row"><b>${ei+1}. ${x[0]}</b><span class="muted">${x[1]} × ${x[2]}</span></div><div class="sets">`;
+ for(let s=1;s<=x[1];s++){let k=state.week+"-"+w.name+"-"+ei+"-"+s;h+=`<button class="set ${state.done[k]?'done':''}" onclick="toggleSet('${k}')">${state.done[k]?'✓ ':''}Set ${s}</button>`}h+=`</div></div>`});
+ h+=`<br><button onclick="resetToday()">Reset Today</button></div>`;c.innerHTML=h;
+}
+function toggleSet(k){state.done[k]=!state.done[k];save();render()}
+function resetToday(){let w=todayWorkout();w.ex.forEach((x,ei)=>{for(let s=1;s<=x[1];s++)delete state.done[state.week+"-"+w.name+"-"+ei+"-"+s]});save();render()}
+function renderMeals(c){
+ let h=`<div class="card"><div class="row"><div><h2>Weekly Meal Plan</h2><div class="muted">High protein • meal prep friendly</div></div><button class="secondary" onclick="changeMeals()">Change Week</button></div>`;
+ meals.forEach((m,i)=>h+=`<div class="meal"><div class="row"><b>${m[0]}</b><span class="pill">${m[3]}</span></div><div>${m[1]}</div><div class="muted small">${m[2]}</div></div>`);
+ h+=`</div><div class="card"><h3>Meal prep</h3><p class="muted">Prep chicken, lean beef/turkey, rice or potatoes, vegetables, Greek yogurt and grab-and-go protein snacks twice a week.</p><button class="ghost" onclick="alert('Grocery list: chicken breast, lean ground beef/turkey, eggs, Greek yogurt, cottage cheese, protein powder, rice, potatoes, oats, berries, vegetables, beans, salsa, light cheese, marinara.')">Show Grocery List</button></div>`;c.innerHTML=h;
+}
+function changeMeals(){alert("Next meal rotation unlocked: swap proteins, carb sources and vegetables while keeping the calorie/protein targets.");}
+function renderProgress(c){
+ c.innerHTML=`<div class="card"><h2>Progress</h2><div class="form"><label>Current weight<input id="weight" inputmode="decimal" value="${state.weight}" placeholder="223"></label><label>Waist<input id="waist" inputmode="decimal" value="${state.waist}" placeholder="inches"></label><button onclick="state.weight=document.getElementById('weight').value;state.waist=document.getElementById('waist').value;save();render()">Save Check-in</button></div></div>
+ <div class="card"><h3>Goal</h3><div class="grid"><div class="stat"><span class="muted">Starting</span><br><b>223</b> lb</div><div class="stat"><span class="muted">Goal</span><br><b>180–185</b> lb</div><div class="stat"><span class="muted">Lost</span><br><b>${state.weight?Math.max(0,223-Number(state.weight)).toFixed(1):"—"}</b> lb</div><div class="stat"><span class="muted">Target pace</span><br><b>1–2</b> lb/wk</div></div></div>`;
+}
+function renderMore(c){
+ c.innerHTML=`<div class="card"><h2>Settings</h2><div class="form"><label>Training days<select id="schedule"><option ${state.schedule==="3"?"selected":""}>3</option><option ${state.schedule==="4"?"selected":""}>4</option><option ${state.schedule==="5"?"selected":""}>5</option></select></label><button onclick="state.schedule=document.getElementById('schedule').value;save();render()">Save Schedule</button><button class="secondary" onclick="nextWeek()">Change Up Next Week</button><button class="ghost" onclick="exportData()">Backup My Data</button><button class="ghost" onclick="importData()">Restore Backup</button><button class="danger" onclick="if(confirm('Reset all app data?')){localStorage.removeItem(KEY);location.reload()}">Reset App</button></div></div>
+ <div class="card"><h3>iPhone install</h3><p class="muted">Once this app is hosted at a secure web address, open it in Safari, tap Share → Add to Home Screen, turn on Open as Web App, then Add.</p></div>`;
+}
+function nextWeek(){state.week=(state.week+1)%plans.length;state.done={};save();render()}
+function exportData(){let a=document.createElement('a');a.href='data:application/json,'+encodeURIComponent(JSON.stringify(state));a.download='fitfuel-backup.json';a.click()}
+function importData(){let i=document.createElement('input');i.type='file';i.accept='.json';i.onchange=()=>{let r=new FileReader();r.onload=()=>{state=JSON.parse(r.result);save();render()};r.readAsText(i.files[0])};i.click()}
+document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;save();render()});
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+render();
+</script>
+</body>
+</html>
